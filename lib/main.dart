@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:notifications_programming/screens/home_screen.dart';
+import 'package:notifications_programming/screens/hoy_screen.dart';
 import 'package:notifications_programming/services/notification_service.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
       primarySwatch: Colors.blue,
       useMaterial3: true,
      ),
-      home: HomeScreen(),
+      home: const HoyScreen(),
 
     );
   }
