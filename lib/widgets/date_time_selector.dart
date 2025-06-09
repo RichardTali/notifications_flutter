@@ -7,7 +7,6 @@ class DateTimeSelector extends StatelessWidget {
 
   const DateTimeSelector({
     super.key,
-
     required this.selectedDate,
     required this.selectedTime,
     required this.onDateTimeChanged,
@@ -21,46 +20,28 @@ class DateTimeSelector extends StatelessWidget {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
-    if (picked != null && picked != selectedDate) {
-      onDateTimeChanged(picked, selectedTime);
+    if (picked != null) {
+      _selectTime(context, picked);
     }
   }
 
-  Future<void> _selectTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
+  Future<void> _selectTime(BuildContext context, DateTime pickedDate) async {
+    final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: selectedTime,
     );
 
-    if (picked != null && picked != selectedDate) {
-      onDateTimeChanged(selectedDate, picked);
+    if (pickedTime != null) {
+      onDateTimeChanged(pickedDate, pickedTime);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _selectDate(context),
-            icon: const Icon(Icons.calendar_today),
-            label: Text(
-              'Date: ${selectedDate.toLocal().toString().split('')[0]}',
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _selectTime(context),
-            icon: const Icon(Icons.access_time),
-            label: Text(
-              'Time: ${selectedTime.format(context)}'),
-            
-          ),
-        ),
-      ],
+    return OutlinedButton.icon(
+      icon: const Icon(Icons.alarm_add),
+      label: const Text('Agregar fecha y hora'),
+      onPressed: () => _selectDate(context),
     );
   }
 }

@@ -64,36 +64,32 @@ class NotificationService {
     );
   }
 
-  Future<void> scheduleNotification(DateTime scheduleDateTime) async{
-    const AndroidNotificationDetails androidPlatformChannelSpecifies =
+  Future<void> scheduleNotification(DateTime scheduleDateTime, int id) async {
+  const AndroidNotificationDetails androidPlatformChannelSpecifies =
+      AndroidNotificationDetails(
+    'instant_channel',
+    'Instant Notifications',
+    channelDescription: 'Channel for notification',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails platformChannelSpecifies =
+      NotificationDetails(android: androidPlatformChannelSpecifies);
+
+  await flutterLocalNotificationsPlugin.zonedSchedule(
+    id, // <- ID único por notificación
+    'Recordatorio de medicamento',
+    "Es hora de tomar tu medicamento",
+    tz.TZDateTime.from(scheduleDateTime, tz.local),
+    platformChannelSpecifies,
+    payload: 'scheduled',
+    androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     
-    AndroidNotificationDetails(
-      'instant_channel',
-      'Instant Notifications',
-      channelDescription: 'Channel for notification',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
+    matchDateTimeComponents: DateTimeComponents.dateAndTime,
+  );
+}
 
-
-    const NotificationDetails platformChannelSpecifies = 
-    NotificationDetails(android: androidPlatformChannelSpecifies);
-
-    //you can customize title and description of notification and you can also make it dynamic
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      1,
-      'Title of Notification',
-      "Description of Notification", 
-      tz.TZDateTime.from(scheduleDateTime, tz.local),
-      platformChannelSpecifies,
-      
-      // uiLocalNotificationDateInterpretation: 
-      //  UILocalNotificationDateInterpretation.absoluteTime,
-      
-      payload:'scheduled', 
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
-  }
 
 
 }
