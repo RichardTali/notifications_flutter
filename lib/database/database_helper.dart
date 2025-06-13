@@ -101,5 +101,20 @@ Future<int> updateMedicamento(int id, Map<String, dynamic> row) async {
 
 
 
+Future<List<Map<String, dynamic>>> getRecordatoriosDeHoy() async {
+  final db = await database;
+  final hoy = DateTime.now();
+  final hoyStr = '${hoy.year.toString().padLeft(4, '0')}-${hoy.month.toString().padLeft(2, '0')}-${hoy.day.toString().padLeft(2, '0')}';
+
+  // Unir medicamentos y recordatorios, filtrar por fecha de hoy
+  return await db.rawQuery('''
+    SELECT r.id, r.fecha_hora, m.nombre, m.dosis, m.cantidad
+    FROM recordatorios r
+    JOIN medicamentos m ON r.medicamento_id = m.id
+    WHERE date(r.fecha_hora) = ?
+    ORDER BY r.fecha_hora ASC
+  ''', [hoyStr]);
+}
+
 
 }

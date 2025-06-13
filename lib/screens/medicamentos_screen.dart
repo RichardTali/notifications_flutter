@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:notifications_programming/database/database_helper.dart';
 import 'package:notifications_programming/screens/home_screen.dart';
+import 'package:notifications_programming/screens/hoy_screen.dart';
+import 'package:notifications_programming/screens/mas_screen.dart';
+import 'package:notifications_programming/widgets/custom_bottom_nav.dart';
 
 class MedicamentosScreen extends StatefulWidget {
   const MedicamentosScreen({super.key});
@@ -51,9 +54,7 @@ class _MedicamentosScreenState extends State<MedicamentosScreen> {
   Future<void> _agregarMedicamento() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const HomeScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
     );
 
     if (result == true) {
@@ -63,13 +64,7 @@ class _MedicamentosScreenState extends State<MedicamentosScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      // Aquí puedes navegar a otras pantallas según el índice
-      // Por ahora solo mantiene el índice seleccionado
-    });
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -78,9 +73,9 @@ class _MedicamentosScreenState extends State<MedicamentosScreen> {
       appBar: AppBar(
         title: const Text(
           'Medicamentos',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: const Color.fromARGB(255, 61, 164, 233),
         elevation: 0,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -118,13 +113,19 @@ class _MedicamentosScreenState extends State<MedicamentosScreen> {
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  leading: const Icon(Icons.medical_services,
-                      color: Colors.blueAccent),
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  leading: const Icon(
+                    Icons.medical_services,
+                    color: Colors.blueAccent,
+                  ),
                   title: Text(
                     med['nombre'] ?? '',
                     style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 16),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
                   ),
                   subtitle: Text(
                     'Dosis: ${med['dosis'] ?? ''}\nCantidad: ${med['cantidad'] ?? ''}',
@@ -139,17 +140,17 @@ class _MedicamentosScreenState extends State<MedicamentosScreen> {
                         _eliminarMedicamento(med['id']);
                       }
                     },
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<String>>[
-                      const PopupMenuItem<String>(
-                        value: 'edit',
-                        child: Text('Editar'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'delete',
-                        child: Text('Eliminar'),
-                      ),
-                    ],
+                    itemBuilder:
+                        (BuildContext context) => <PopupMenuEntry<String>>[
+                          const PopupMenuItem<String>(
+                            value: 'edit',
+                            child: Text('Editar'),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Text('Eliminar'),
+                          ),
+                        ],
                   ),
                 ),
               );
@@ -159,30 +160,12 @@ class _MedicamentosScreenState extends State<MedicamentosScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _agregarMedicamento,
-        child: const Icon(Icons.add),
-        backgroundColor: Colors.blueAccent,
+        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.teal,
         tooltip: 'Agregar nuevo medicamento',
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services),
-            label: 'Medicamentos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.alarm),
-            label: 'Recordatorios',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Configuración',
-          ),
-        ],
-      ),
+
+      bottomNavigationBar: const CustomBottomNav(selectedIndex: 1), 
     );
   }
 }

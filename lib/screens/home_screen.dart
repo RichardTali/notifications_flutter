@@ -42,7 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.medicamento != null) {
       _medNameController.text = widget.medicamento!['nombre'] ?? '';
       _selectedDose = widget.medicamento!['dosis'];
-      _quantityController.text = (widget.medicamento!['cantidad'] ?? '').toString();
+      _quantityController.text =
+          (widget.medicamento!['cantidad'] ?? '').toString();
     }
   }
 
@@ -133,13 +134,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Colors.teal;
+    final primaryColor = const Color.fromARGB(255, 61, 164, 233);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.medicamento != null ? 'Editar Medicamento' : 'Registrar Medicamento'),
+        title: Text(
+          widget.medicamento != null
+              ? 'Editar Medicamento'
+              : 'Registrar Medicamento',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: primaryColor,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ), // <-- esto cambia el color de la flechita
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -212,9 +225,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton.icon(
                 onPressed: _scheduleNotifications,
                 icon: const Icon(Icons.save),
-                label: Text(widget.medicamento != null ? 'Actualizar' : 'Guardar'),
+                label: Text(
+                  widget.medicamento != null ? 'Actualizar' : 'Guardar',
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
+                  backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
@@ -241,7 +256,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      validator: (value) => (value == null || value.isEmpty) ? 'Campo obligatorio' : null,
+      validator:
+          (value) =>
+              (value == null || value.isEmpty) ? 'Campo obligatorio' : null,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: color),
         labelText: label,
@@ -264,14 +281,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return DropdownButtonFormField<String>(
       value: value,
-      items: items
-          .map((dose) => DropdownMenuItem<String>(
-                value: dose,
-                child: Text(dose),
-              ))
-          .toList(),
+      items:
+          items
+              .map(
+                (dose) =>
+                    DropdownMenuItem<String>(value: dose, child: Text(dose)),
+              )
+              .toList(),
       onChanged: onChanged,
-      validator: (value) => (value == null || value.isEmpty) ? 'Selecciona una dosis' : null,
+      validator:
+          (value) =>
+              (value == null || value.isEmpty) ? 'Selecciona una dosis' : null,
       decoration: InputDecoration(
         prefixIcon: Icon(Icons.medical_services, color: color),
         labelText: label,
