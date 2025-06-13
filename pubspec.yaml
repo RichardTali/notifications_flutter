@@ -10,8 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_local_notifications: ^19.2.1 
-  sqflite: ^2.3.2+1 
+  sqflite: ^2.3.2 
   path: ^1.9.0
+  intl: ^0.18.1
+  flutter_native_splash: ^2.3.5
+  
+
 
 dev_dependencies:
   flutter_test:
@@ -20,3 +24,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/splash.png
+    
+
+
+flutter_native_splash:
+  fullscreen: true
+  color: "#B3E5FC"
+  image: assets/splash.png
+  android: true
+  ios: true
+

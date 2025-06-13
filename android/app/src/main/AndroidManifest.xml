@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
-        android:label="notifications_programming"
+        android:label="Dose Med"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

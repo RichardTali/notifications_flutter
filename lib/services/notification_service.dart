@@ -1,7 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
-
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
@@ -21,29 +20,25 @@ class NotificationService {
           requestSoundPermission: true,
         );
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsIOS,
-        );
-  
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationTap,
-
-      
     );
- 
   }
 
   void _onNotificationTap(NotificationResponse response) {
-    
-    //you can navigate to any screen when notification clicked
+    // Puedes navegar a una pantalla específica cuando se pulse la notificación
     print("Notification Clicked: ${response.payload}");
   }
 
-  Future<void> showInstantNotification() async{
-    const AndroidNotificationDetails androidPlatformChannelSpecifies = AndroidNotificationDetails(
+  Future<void> showInstantNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
       'instant_channel',
       'Instant Notifications',
       channelDescription: 'Channel for notification',
@@ -51,45 +46,58 @@ class NotificationService {
       priority: Priority.high,
     );
 
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    const NotificationDetails platformChannelSpecifies = NotificationDetails(android: androidPlatformChannelSpecifies);
-
-    //you can customize title and description of notification and you can also make it dynamic
     await flutterLocalNotificationsPlugin.show(
       0,
       'Title of Notification',
-      "Description of Notification", 
-      platformChannelSpecifies,
-      payload:'instant',
+      "Description of Notification",
+      platformChannelSpecifics,
+      payload: 'instant',
     );
   }
 
-  Future<void> scheduleNotification(DateTime scheduleDateTime, int id) async {
-  const AndroidNotificationDetails androidPlatformChannelSpecifies =
-      AndroidNotificationDetails(
-    'instant_channel',
-    'Instant Notifications',
-    channelDescription: 'Channel for notification',
+  Future<void> scheduleNotification({
+  required DateTime dateTime,
+  required int id,
+  required String nombreMedicamento,
+  required int cantidad,
+  required String dosis,
+}) async {
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'med_channel',
+    'Medicamentos',
+    channelDescription: 'Notificaciones para medicamentos',
     importance: Importance.max,
     priority: Priority.high,
   );
 
-  const NotificationDetails platformChannelSpecifies =
-      NotificationDetails(android: androidPlatformChannelSpecifies);
+  const NotificationDetails platformDetails = NotificationDetails(
+    android: androidDetails,
+  );
+
+  final tz.TZDateTime scheduledDate = tz.TZDateTime.from(dateTime, tz.local);
+
+  final hora =
+      '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+
+  final mensaje = 
+      'Es hora de tomar su medicina:\n'
+      '$nombreMedicamento,\n'
+      '$dosis:\n'
+      '$cantidad.0,\n'
+      '$hora';
 
   await flutterLocalNotificationsPlugin.zonedSchedule(
-    id, // <- ID único por notificación
-    'Recordatorio de medicamento',
-    "Es hora de tomar tu medicamento",
-    tz.TZDateTime.from(scheduleDateTime, tz.local),
-    platformChannelSpecifies,
-    payload: 'scheduled',
+    id,
+    'Hora de tomar tu medicamento',
+    mensaje,
+    scheduledDate,
+    platformDetails,
     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    
-    matchDateTimeComponents: DateTimeComponents.dateAndTime,
+    payload: 'medicamento_$id',
   );
 }
-
-
 
 }
