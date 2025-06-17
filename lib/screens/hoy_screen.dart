@@ -37,10 +37,15 @@ class _HoyScreenState extends State<HoyScreen> {
 Widget build(BuildContext context) {
   final primaryColor = const Color.fromARGB(255, 61, 164, 233);
   return Scaffold(
+    backgroundColor: const Color(0xFFF2F6FA),
     appBar: AppBar(
-      title: const Text('Recordatorios de Hoy'),
-      backgroundColor: primaryColor,
-    ),
+        title: const Text(
+          'Recordatorios de Hoy',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        backgroundColor: const Color.fromARGB(255, 61, 164, 233),
+        elevation: 0,
+      ),
     body: FutureBuilder<List<Map<String, dynamic>>>(
       future: DatabaseHelper().getRecordatoriosDeHoy(), // <-- ¡Aquí!
       builder: (context, snapshot) {
@@ -48,7 +53,7 @@ Widget build(BuildContext context) {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No hay recordatorios para hoy.'));
+          return const Center(child: Text('No hay recordatorios para hoy.',style: TextStyle(fontSize: 18, color: Colors.grey)));
         }
         final recordatorios = snapshot.data!;
         return ListView.builder(

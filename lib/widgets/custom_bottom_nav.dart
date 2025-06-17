@@ -42,7 +42,7 @@ class CustomBottomNav extends StatelessWidget {
           icon: Icon(Icons.medical_services),
           label: 'Medicamentos',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Más'),
+        BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Historial'),
       ],
     );
   }

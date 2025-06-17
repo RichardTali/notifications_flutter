@@ -10,13 +10,18 @@ class MasScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F6FA),
       appBar: AppBar(
-        title: const Text('Más'),
+        title: const Text(
+          'Historial',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         backgroundColor: const Color.fromARGB(255, 61, 164, 233),
+        elevation: 0,
       ),
       body: Center(
         child: Text(
-          'Más Screen',
+          '',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
       ),

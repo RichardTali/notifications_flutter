@@ -28,10 +28,12 @@ class DatabaseHelper {
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE medicamentos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        dosis TEXT NOT NULL,
-        cantidad INTEGER NOT NULL
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    dosis TEXT NOT NULL,
+    cantidad INTEGER NOT NULL,
+    fecha_inicio TEXT,
+    fecha_fin TEXT
       )
     ''');
 

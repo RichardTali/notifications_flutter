@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:notifications_programming/database/database_helper.dart';
 import 'package:notifications_programming/services/notification_service.dart';
 import 'package:notifications_programming/widgets/date_time_selector.dart';
@@ -19,9 +20,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _medNameController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
 
-  DateTime selectedDate = DateTime.now();
-  List<DateTime> notificationTimes = [];
   String? _selectedDose;
+  DateTime? _fechaInicio;
+  DateTime? _fechaFin;
+  List<TimeOfDay> _horasPorDia = [];
 
   final List<String> _doseOptions = [
     'Cápsula',
@@ -47,25 +49,55 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _updateDateTime(DateTime date, TimeOfDay time) {
-    setState(() {
-      final newDateTime = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
-      notificationTimes.add(newDateTime);
-    });
+  Future<void> _selectFechaInicio() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        _fechaInicio = picked;
+        if (_fechaFin != null && _fechaFin!.isBefore(picked)) {
+          _fechaFin = null; // reinicia si fin está antes del inicio
+        }
+      });
+    }
+  }
+
+  Future<void> _selectFechaFin() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaInicio ?? DateTime.now(),
+      firstDate: _fechaInicio ?? DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        _fechaFin = picked;
+      });
+    }
+  }
+
+  Future<void> _selectHora() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _horasPorDia.add(picked);
+      });
+    }
   }
 
   Future<void> _scheduleNotifications() async {
     if (!_formKey.currentState!.validate()) return;
-    if (notificationTimes.isEmpty) {
+    if (_fechaInicio == null || _fechaFin == null || _horasPorDia.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Por favor, selecciona al menos una hora."),
+          content: Text("Selecciona el rango de fechas y al menos una hora por día."),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -75,40 +107,57 @@ class _HomeScreenState extends State<HomeScreen> {
     final dbHelper = DatabaseHelper();
     int medId;
 
+    final medData = {
+      'nombre': _medNameController.text,
+      'dosis': _selectedDose ?? '',
+      'cantidad': int.tryParse(_quantityController.text) ?? 0,
+      'fecha_inicio': _fechaInicio!.toIso8601String(),
+      'fecha_fin': _fechaFin!.toIso8601String(),
+    };
+
     if (widget.medicamento != null && widget.medicamento!['id'] != null) {
       medId = widget.medicamento!['id'];
-      await dbHelper.updateMedicamento(medId, {
-        'nombre': _medNameController.text,
-        'dosis': _selectedDose ?? '',
-        'cantidad': int.tryParse(_quantityController.text) ?? 0,
-      });
+      await dbHelper.updateMedicamento(medId, medData);
     } else {
-      medId = await dbHelper.insertMedicamento({
-        'nombre': _medNameController.text,
-        'dosis': _selectedDose ?? '',
-        'cantidad': int.tryParse(_quantityController.text) ?? 0,
-      });
+      medId = await dbHelper.insertMedicamento(medData);
+    }
+
+    // Generar fechas entre inicio y fin
+    List<DateTime> todasLasNotificaciones = [];
+    DateTime fechaActual = _fechaInicio!;
+    while (!fechaActual.isAfter(_fechaFin!)) {
+      for (TimeOfDay hora in _horasPorDia) {
+        final dt = DateTime(
+          fechaActual.year,
+          fechaActual.month,
+          fechaActual.day,
+          hora.hour,
+          hora.minute,
+        );
+        if (dt.isAfter(DateTime.now())) {
+          todasLasNotificaciones.add(dt);
+        }
+      }
+      fechaActual = fechaActual.add(const Duration(days: 1));
     }
 
     int idCounter = 1;
-    for (final dateTime in notificationTimes) {
-      if (dateTime.isAfter(DateTime.now())) {
-        await _notificationService.scheduleNotification(
-          dateTime: dateTime,
-          id: idCounter,
-          nombreMedicamento: _medNameController.text,
-          cantidad: int.tryParse(_quantityController.text) ?? 0,
-          dosis: _selectedDose ?? '',
-        );
+    for (final dateTime in todasLasNotificaciones) {
+      await _notificationService.scheduleNotification(
+        dateTime: dateTime,
+        id: idCounter,
+        nombreMedicamento: _medNameController.text,
+        cantidad: int.tryParse(_quantityController.text) ?? 0,
+        dosis: _selectedDose ?? '',
+      );
 
-        await dbHelper.insertRecordatorio({
-          'medicamento_id': medId,
-          'fecha_hora': dateTime.toIso8601String(),
-          'notificacion_id': idCounter,
-        });
+      await dbHelper.insertRecordatorio({
+        'medicamento_id': medId,
+        'fecha_hora': dateTime.toIso8601String(),
+        'notificacion_id': idCounter,
+      });
 
-        idCounter++;
-      }
+      idCounter++;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -122,11 +171,14 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
+    // Limpiar formulario
     setState(() {
-      notificationTimes.clear();
       _medNameController.clear();
       _quantityController.clear();
       _selectedDose = null;
+      _fechaInicio = null;
+      _fechaFin = null;
+      _horasPorDia.clear();
     });
 
     Navigator.pop(context, true);
@@ -142,17 +194,11 @@ class _HomeScreenState extends State<HomeScreen> {
           widget.medicamento != null
               ? 'Editar Medicamento'
               : 'Registrar Medicamento',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: primaryColor,
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ), // <-- esto cambia el color de la flechita
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -182,52 +228,58 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.format_list_numbered,
                 keyboardType: TextInputType.number,
                 color: primaryColor,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
               const SizedBox(height: 30),
-              const Text(
-                'Seleccionar Fecha y Hora',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              DateTimeSelector(
-                selectedDate: selectedDate,
-                selectedTime: TimeOfDay.now(),
-                onDateTimeChanged: _updateDateTime,
+              const Text('Rango de fechas del tratamiento', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _selectFechaInicio,
+                    icon: const Icon(Icons.date_range),
+                    label: Text(_fechaInicio != null
+                        ? 'Inicio: ${_fechaInicio!.day}/${_fechaInicio!.month}/${_fechaInicio!.year}'
+                        : 'Seleccionar inicio'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _selectFechaFin,
+                    icon: const Icon(Icons.date_range_outlined),
+                    label: Text(_fechaFin != null
+                        ? 'Fin: ${_fechaFin!.day}/${_fechaFin!.month}/${_fechaFin!.year}'
+                        : 'Seleccionar fin'),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Horas seleccionadas:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              const Text('Horarios por día', style: TextStyle(fontWeight: FontWeight.bold)),
+              ElevatedButton.icon(
+                onPressed: _selectHora,
+                icon: const Icon(Icons.access_time),
+                label: const Text('Agregar hora'),
               ),
-              const SizedBox(height: 8),
-              if (notificationTimes.isEmpty)
-                const Text('No se ha seleccionado ninguna hora.'),
-              ...notificationTimes.map(
-                (dt) => Card(
-                  color: primaryColor.withOpacity(0.1),
-                  child: ListTile(
-                    leading: const Icon(Icons.alarm),
-                    title: Text(
-                      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} - ${dt.day}/${dt.month}/${dt.year}',
-                    ),
+              Column(
+                children: _horasPorDia.map((hora) {
+                  return ListTile(
+                    leading: const Icon(Icons.schedule),
+                    title: Text('${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}'),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete),
                       onPressed: () {
                         setState(() {
-                          notificationTimes.remove(dt);
+                          _horasPorDia.remove(hora);
                         });
                       },
                     ),
-                  ),
-                ),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 30),
               ElevatedButton.icon(
                 onPressed: _scheduleNotifications,
                 icon: const Icon(Icons.save),
-                label: Text(
-                  widget.medicamento != null ? 'Actualizar' : 'Guardar',
-                ),
+                label: Text(widget.medicamento != null ? 'Actualizar' : 'Guardar'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
@@ -252,13 +304,13 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required Color color,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      validator:
-          (value) =>
-              (value == null || value.isEmpty) ? 'Campo obligatorio' : null,
+      inputFormatters: inputFormatters,
+      validator: (value) => (value == null || value.isEmpty) ? 'Campo obligatorio' : null,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: color),
         labelText: label,
@@ -281,17 +333,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return DropdownButtonFormField<String>(
       value: value,
-      items:
-          items
-              .map(
-                (dose) =>
-                    DropdownMenuItem<String>(value: dose, child: Text(dose)),
-              )
-              .toList(),
+      items: items.map((dose) => DropdownMenuItem<String>(value: dose, child: Text(dose))).toList(),
       onChanged: onChanged,
-      validator:
-          (value) =>
-              (value == null || value.isEmpty) ? 'Selecciona una dosis' : null,
+      validator: (value) => (value == null || value.isEmpty) ? 'Selecciona una dosis' : null,
       decoration: InputDecoration(
         prefixIcon: Icon(Icons.medical_services, color: color),
         labelText: label,
