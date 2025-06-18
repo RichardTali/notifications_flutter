@@ -75,6 +75,7 @@ class _MedicamentosScreenState extends State<MedicamentosScreen> {
           'Medicamentos',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
+        centerTitle: true,
         backgroundColor: const Color.fromARGB(255, 61, 164, 233),
         elevation: 0,
       ),
@@ -92,13 +93,33 @@ class _MedicamentosScreenState extends State<MedicamentosScreen> {
           final medicamentos = snapshot.data;
 
           if (medicamentos == null || medicamentos.isEmpty) {
-            return const Center(
-              child: Text(
-                'No hay medicamentos registrados',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
-            );
-          }
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.medical_services_outlined,
+              size: 130, color: Colors.blueAccent.withOpacity(0.7)),
+          const SizedBox(height: 24),
+          const Text(
+            'Sin medicamentos registrados',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Agrega tus medicamentos para comenzar a recibir recordatorios y llevar un mejor control.',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+          
+        ],
+      ),
+    ),
+  );
+}
+
 
           return ListView.builder(
             padding: const EdgeInsets.all(12),
