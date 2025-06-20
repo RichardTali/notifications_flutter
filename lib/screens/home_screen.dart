@@ -1,8 +1,9 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:notifications_programming/database/database_helper.dart';
 import 'package:notifications_programming/services/notification_service.dart';
-import 'package:notifications_programming/widgets/date_time_selector.dart';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic>? medicamento;
@@ -44,15 +45,35 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.medicamento != null) {
       _medNameController.text = widget.medicamento!['nombre'] ?? '';
       _selectedDose = widget.medicamento!['dosis'];
-      _quantityController.text =
-          (widget.medicamento!['cantidad'] ?? '').toString();
+      _quantityController.text = (widget.medicamento!['cantidad'] ?? '').toString();
+
+      // Cargar fechas y horas de recordatorios existentes
+      _fechaInicio = widget.medicamento!['fecha_inicio'] != null
+          ? DateTime.parse(widget.medicamento!['fecha_inicio'])
+          : null;
+      _fechaFin = widget.medicamento!['fecha_fin'] != null
+          ? DateTime.parse(widget.medicamento!['fecha_fin'])
+          : null;
+
+      _loadHorasDeRecordatorios();
     }
+  }
+
+  Future<void> _loadHorasDeRecordatorios() async {
+    final dbHelper = DatabaseHelper();
+    final recordatorios = await dbHelper.getRecordatorios(widget.medicamento!['id']);
+    setState(() {
+      _horasPorDia = recordatorios.map((r) {
+        final dt = DateTime.parse(r['fecha_hora']);
+        return TimeOfDay(hour: dt.hour, minute: dt.minute);
+      }).toList();
+    });
   }
 
   Future<void> _selectFechaInicio() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _fechaInicio ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
@@ -60,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _fechaInicio = picked;
         if (_fechaFin != null && _fechaFin!.isBefore(picked)) {
-          _fechaFin = null; // reinicia si fin está antes del inicio
+          _fechaFin = null;
         }
       });
     }
@@ -69,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _selectFechaFin() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _fechaInicio ?? DateTime.now(),
+      initialDate: _fechaFin ?? _fechaInicio ?? DateTime.now(),
       firstDate: _fechaInicio ?? DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
@@ -87,7 +108,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (picked != null) {
       setState(() {
-        _horasPorDia.add(picked);
+        // Evitar duplicados
+        if (!_horasPorDia.any((h) => h.hour == picked.hour && h.minute == picked.minute)) {
+          _horasPorDia.add(picked);
+        }
       });
     }
   }
@@ -118,6 +142,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.medicamento != null && widget.medicamento!['id'] != null) {
       medId = widget.medicamento!['id'];
       await dbHelper.updateMedicamento(medId, medData);
+
+      // Eliminar recordatorios viejos para evitar duplicados
+      await dbHelper.deleteRecordatoriosByMedicamento(medId);
+
     } else {
       medId = await dbHelper.insertMedicamento(medData);
     }
@@ -171,7 +199,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    // Limpiar formulario
     setState(() {
       _medNameController.clear();
       _quantityController.clear();
@@ -191,9 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.medicamento != null
-              ? 'Editar Medicamento'
-              : 'Registrar Medicamento',
+          widget.medicamento != null ? 'Editar Medicamento' : 'Registrar Medicamento',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: primaryColor,
@@ -287,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  elevation: 5,
+                  elevation: 10,
                 ),
               ),
             ],
@@ -308,19 +333,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      validator: (value) => (value == null || value.isEmpty) ? 'Campo obligatorio' : null,
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: color),
         labelText: label,
         hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: color),
-          borderRadius: BorderRadius.circular(10),
-        ),
+        prefixIcon: Icon(icon, color: color),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
       ),
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Por favor ingresa $label';
+        }
+        return null;
+      },
     );
   }
 
@@ -333,18 +359,24 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return DropdownButtonFormField<String>(
       value: value,
-      items: items.map((dose) => DropdownMenuItem<String>(value: dose, child: Text(dose))).toList(),
-      onChanged: onChanged,
-      validator: (value) => (value == null || value.isEmpty) ? 'Selecciona una dosis' : null,
       decoration: InputDecoration(
-        prefixIcon: Icon(Icons.medical_services, color: color),
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: color),
-          borderRadius: BorderRadius.circular(10),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+        prefixIcon: Icon(Icons.medication, color: color),
       ),
+      items: items
+          .map((e) => DropdownMenuItem(
+                value: e,
+                child: Text(e),
+              ))
+          .toList(),
+      onChanged: onChanged,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Por favor selecciona $label';
+        }
+        return null;
+      },
     );
   }
 }

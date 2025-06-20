@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:notifications_programming/database/database_helper.dart';
 import 'package:notifications_programming/screens/medicamentos_screen.dart';
@@ -12,18 +14,50 @@ class HoyScreen extends StatefulWidget {
   State<HoyScreen> createState() => _HoyScreenState();
 }
 
-class _HoyScreenState extends State<HoyScreen> {
+class _HoyScreenState extends State<HoyScreen> with WidgetsBindingObserver {
   late Future<List<Map<String, dynamic>>> _recordatoriosDeHoy;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    NotificationService().onActionReceived.addListener(_onNotificationAction);
     _loadRecordatorios();
   }
 
-  void _loadRecordatorios() {
-    _recordatoriosDeHoy = DatabaseHelper().getRecordatoriosDeHoy();
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    NotificationService().onActionReceived.removeListener(
+      _onNotificationAction,
+    );
+    super.dispose();
   }
+
+  @override
+void didChangeAppLifecycleState(AppLifecycleState state) {
+  if (state == AppLifecycleState.resumed) {
+    _loadRecordatorios().then((_) {
+      setState(() {});
+    });
+  }
+}
+
+
+  void _onNotificationAction() async {
+  print('[HOYSCREEN] actionReceived, recargando...');
+  await _loadRecordatorios();
+  setState(() {});
+}
+
+
+
+
+  Future<void> _loadRecordatorios() async {
+  _recordatoriosDeHoy = DatabaseHelper().getRecordatoriosDeHoy();
+}
+
+
 
   void _registrarAccion(int recordatorioId, String estado) async {
     await DatabaseHelper().registrarToma(recordatorioId, estado);
@@ -51,7 +85,7 @@ class _HoyScreenState extends State<HoyScreen> {
 
     final nuevaHora = DateTime.parse(
       rec['fecha_hora'],
-    ).add(const Duration(minutes: 10));
+    ).add(const Duration(minutes: 2));
 
     await NotificationService().scheduleNotification(
       dateTime: nuevaHora,

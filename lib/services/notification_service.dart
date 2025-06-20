@@ -1,11 +1,27 @@
+
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:notifications_programming/database/database_helper.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:permission_handler/permission_handler.dart';
+
+
+Future<void> requestNotificationPermission() async {
+  final status = await Permission.notification.status;
+  if (status.isDenied || status.isRestricted || status.isLimited) {
+    await Permission.notification.request();
+  }
+}
+
+
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 class NotificationService {
+  final ValueNotifier<int> onActionReceived = ValueNotifier<int>(0);
+
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
@@ -29,63 +45,75 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: _onNotificationTap,
+      // onDidReceiveNotificationResponse: _onNotificationTap,
     );
   }
 
- void _onNotificationTap(NotificationResponse response) async {
-  final dbHelper = DatabaseHelper();
+  // void _onNotificationTap(NotificationResponse response) async {
+  //   final dbHelper = DatabaseHelper();
 
-  final action = response.actionId;
-  final payload = response.payload;
+  //   final action = response.actionId;
+  //   final payload = response.payload;
 
-  if (payload == null || !payload.startsWith('medicamento_')) {
-    print('❌ Payload inválido: $payload');
-    return;
-  }
+  //   if (payload == null || !payload.startsWith('medicamento_')) {
+  //     print('❌ Payload inválido: $payload');
+  //     return;
+  //   }
 
-  final recordatorioId = int.tryParse(payload.split('_')[1]);
-  if (recordatorioId == null) {
-    print('❌ ID no válido en el payload.');
-    return;
-  }
+  //   final recordatorioId = int.tryParse(payload.split('_')[1]);
+  //   if (recordatorioId == null) {
+  //     print('❌ ID no válido en el payload.');
+  //     return;
+  //   }
 
-  print('✅ Acción recibida: $action con ID: $recordatorioId');
+  //   print('✅ Acción recibida: $action con ID: $recordatorioId');
 
-  switch (action) {
-    case 'TOMAR':
-      await dbHelper.registrarToma(recordatorioId, 'tomado');
-      break;
+  //   switch (action) {
+  //     case 'TOMAR':
+  //       await dbHelper.registrarToma(recordatorioId, 'tomado');
 
-    case 'OMITIR':
-      await dbHelper.registrarToma(recordatorioId, 'omitido');
-      break;
+  //       onActionReceived.value++;
+  //       print('[NOTIF] onActionReceived notificador incrementado');
 
-    case 'POSPONER':
-      final recordatorio = await dbHelper.getRecordatorioPorId(recordatorioId);
-      if (recordatorio == null) return;
+  //       break;
 
-      final pos = await dbHelper.contarPosposiciones(recordatorioId);
-      if (pos >= 3) return;
+  //     case 'OMITIR':
+  //       await dbHelper.registrarToma(recordatorioId, 'omitido');
+  //       print(
+  //         '[DB] registro_tomas insertado para ID = $recordatorioId estado OMITIDO',
+  //       );
+  //       onActionReceived.value++;
+  //       break;
 
-      final nuevaHora = DateTime.parse(recordatorio['fecha_hora']).add(const Duration(minutes: 10));
+  //     case 'POSPONER':
+  //       final recordatorio = await dbHelper.getRecordatorioPorId(
+  //         recordatorioId,
+  //       );
+  //       if (recordatorio == null) return;
 
-      await scheduleNotification(
-        dateTime: nuevaHora,
-        id: recordatorio['notificacion_id'] ?? recordatorioId,
-        nombreMedicamento: recordatorio['nombre'],
-        dosis: recordatorio['dosis'],
-        cantidad: recordatorio['cantidad'],
-      );
+  //       final pos = await dbHelper.contarPosposiciones(recordatorioId);
+  //       if (pos >= 3) return;
 
-      await dbHelper.registrarToma(recordatorioId, 'pospuesto');
-      break;
+  //       final nuevaHora = DateTime.parse(
+  //         recordatorio['fecha_hora'],
+  //       ).add(const Duration(minutes: 10));
 
-    default:
-      print('⚠️ Acción no reconocida: $action');
-  }
-}
+  //       await scheduleNotification(
+  //         dateTime: nuevaHora,
+  //         id: recordatorio['notificacion_id'] ?? recordatorioId,
+  //         nombreMedicamento: recordatorio['nombre'],
+  //         dosis: recordatorio['dosis'],
+  //         cantidad: recordatorio['cantidad'],
+  //       );
 
+  //       await dbHelper.registrarToma(recordatorioId, 'pospuesto');
+  //       onActionReceived.value++;
+  //       break;
+
+  //     default:
+  //       print('⚠️ Acción no reconocida: $action');
+  //   }
+  // }
 
   Future<void> showInstantNotification() async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
@@ -124,12 +152,27 @@ class NotificationService {
           channelDescription: 'Notificaciones para medicamentos',
           importance: Importance.max,
           priority: Priority.high,
-
-          actions: <AndroidNotificationAction>[
-            AndroidNotificationAction('TOMAR', 'Tomar'),
-            AndroidNotificationAction('OMITIR', 'Omitir'),
-            AndroidNotificationAction('POSPONER', 'Posponer 10 min'),
-          ],
+          icon: 'pill_icon',
+          // actions: <AndroidNotificationAction>[
+          //   AndroidNotificationAction(
+          //     'TOMAR',
+          //     'Tomar',
+          //     showsUserInterface: true,
+          //     cancelNotification: true,
+          //   ),
+          //   AndroidNotificationAction(
+          //     'OMITIR',
+          //     'Omitir',
+          //     showsUserInterface: true,
+          //     cancelNotification: true,
+          //   ),
+          //   AndroidNotificationAction(
+          //     'POSPONER',
+          //     'Posponer 10 min',
+          //     showsUserInterface: true,
+          //     cancelNotification: true,
+          //   ),
+          // ],
         );
 
     const NotificationDetails platformDetails = NotificationDetails(
@@ -137,6 +180,13 @@ class NotificationService {
     );
 
     final tz.TZDateTime scheduledDate = tz.TZDateTime.from(dateTime, tz.local);
+
+    final now = tz.TZDateTime.now(tz.local);
+
+if (!scheduledDate.isAfter(now)) {
+  print('⚠️ La fecha programada debe ser futura. Fecha pasada detectada: $scheduledDate');
+  return;
+}
 
     final hora =
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
@@ -150,7 +200,7 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id,
-      'Hora de tomar tu medicamento',
+      '💊 Hora de tomar tu medicamento',
       mensaje,
       scheduledDate,
       platformDetails,

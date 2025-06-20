@@ -69,7 +69,11 @@ class DatabaseHelper {
   // Obtener todos los medicamentos
   Future<List<Map<String, dynamic>>> getMedicamentos() async {
     final db = await database;
-    return await db.query('medicamentos');
+    return await db.query(
+  'medicamentos',
+  orderBy: 'id DESC', 
+);
+
   }
 
   // Obtener recordatorios por medicamento
@@ -98,6 +102,19 @@ class DatabaseHelper {
     );
   }
 
+
+
+    Future<int> updateRecordatorio(int id, Map<String, dynamic> row) async {
+  final db = await database;
+  return await db.update(
+    'recordatorios',
+    row,
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
+
   Future<List<Map<String, dynamic>>> getRecordatoriosDeHoy() async {
     final db = await database;
     final hoy = DateTime.now();
@@ -111,11 +128,22 @@ class DatabaseHelper {
   FROM recordatorios r
   JOIN medicamentos m ON r.medicamento_id = m.id
   WHERE date(r.fecha_hora) = ?
+      AND NOT EXISTS (
+        SELECT 1 FROM registro_tomas rt
+        WHERE rt.recordatorio_id = r.id
+          AND rt.estado IN ('tomado', 'omitido')
+      )
   ORDER BY r.fecha_hora ASC
 ''',
       [hoyStr],
     );
   }
+
+  Future<void> deleteRecordatoriosByMedicamento(int medicamentoId) async {
+  final db = await database;
+  await db.delete('recordatorios', where: 'medicamento_id = ?', whereArgs: [medicamentoId]);
+}
+
 
   Future<void> registrarToma(int recordatorioId, String estado) async {
     final db = await database;
