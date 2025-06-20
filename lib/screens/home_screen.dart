@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:notifications_programming/database/database_helper.dart';
+import 'package:notifications_programming/screens/medicamentos_screen.dart';
 import 'package:notifications_programming/services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -208,7 +209,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _horasPorDia.clear();
     });
 
-    Navigator.pop(context, true);
+    Navigator.pushAndRemoveUntil(
+  context,
+  MaterialPageRoute(builder: (context) => const MedicamentosScreen()),
+  (route) => false,
+);
+
   }
 
   @override

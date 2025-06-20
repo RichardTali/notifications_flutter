@@ -152,7 +152,7 @@ class NotificationService {
           channelDescription: 'Notificaciones para medicamentos',
           importance: Importance.max,
           priority: Priority.high,
-          icon: 'pill_icon',
+          
           // actions: <AndroidNotificationAction>[
           //   AndroidNotificationAction(
           //     'TOMAR',
